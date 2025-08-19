@@ -8,8 +8,6 @@ router.use(requireAdminAuth);
 // GET /api/admin/categories
 router.get('/', ctrl.listCategoriesAdmin);
 
-// POST /api/admin/categories/reconcile-from-products
-router.post('/reconcile-from-products', ctrl.reconcileFromProducts);
 
 // GET /api/admin/categories/:id
 router.get('/:id', ctrl.getCategoryById);

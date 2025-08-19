@@ -25,15 +25,10 @@ exports.updateCategory = async (req, res) => {
     if (Object.prototype.hasOwnProperty.call(updates, 'subcategories')) {
       return res.status(400).json({ message: 'Do not modify subcategories here. Use subcategory endpoints.' });
     }
-    // If slug is being changed, and products reference old slug, block
+    // If slug is being changed, just ensure uniqueness (products now reference by IDs)
     if (typeof updates.slug === 'string') {
       const current = await ProductCategory.findById(id);
       if (!current) return res.status(404).json({ message: 'Category not found' });
-      if (current.slug !== updates.slug) {
-        const prodUsing = await Product.exists({ category: current.slug });
-        if (prodUsing) return res.status(409).json({ message: 'Cannot change slug: products reference this category' });
-      }
-      // also ensure new slug not used by another category
       const existsSlug = await ProductCategory.findOne({ slug: updates.slug, _id: { $ne: id } });
       if (existsSlug) return res.status(409).json({ message: 'Slug already exists' });
     }
@@ -51,8 +46,8 @@ exports.deleteCategory = async (req, res) => {
     const { id } = req.params;
     const cat = await ProductCategory.findById(id);
     if (!cat) return res.status(404).json({ message: 'Category not found' });
-    // Block deletion if any products reference this category slug
-    const inUse = await Product.exists({ category: cat.slug });
+    // Block deletion if any products reference this category by ID
+    const inUse = await Product.exists({ categoryId: cat._id });
     if (inUse) return res.status(409).json({ message: 'Cannot delete category: products reference this category' });
     await ProductCategory.findByIdAndDelete(id);
     return res.status(204).send();
@@ -72,14 +67,11 @@ exports.listCategoriesAdmin = async (req, res) => {
   }
 };
 
-// GET /api/admin/categories/:id (id or slug)
+// GET /api/admin/categories/:id (id only)
 exports.getCategoryById = async (req, res) => {
   try {
     const { id } = req.params;
-    let cat = await ProductCategory.findById(id);
-    if (!cat) {
-      cat = await ProductCategory.findOne({ slug: id });
-    }
+    const cat = await ProductCategory.findById(id);
     if (!cat) return res.status(404).json({ message: 'Category not found' });
     return res.json({ category: cat.toJSON() });
   } catch (err) {
@@ -88,16 +80,13 @@ exports.getCategoryById = async (req, res) => {
   }
 };
 
-// POST /api/admin/categories/:id/subcategories (id or slug)
+// POST /api/admin/categories/:id/subcategories (id only)
 exports.addSubcategory = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, slug, description = '' } = req.body || {};
     if (!name || !slug) return res.status(400).json({ message: 'name and slug are required' });
-    let cat = await ProductCategory.findById(id);
-    if (!cat) {
-      cat = await ProductCategory.findOne({ slug: id });
-    }
+    const cat = await ProductCategory.findById(id);
     if (!cat) return res.status(404).json({ message: 'Category not found' });
     // unique slug within category
     if (cat.subcategories.some((s) => s.slug === slug)) {
@@ -112,22 +101,19 @@ exports.addSubcategory = async (req, res) => {
   }
 };
 
-// PATCH /api/admin/categories/:id/subcategories/:subId (id or slug)
+// PATCH /api/admin/categories/:id/subcategories/:subId (id only)
 exports.updateSubcategory = async (req, res) => {
   try {
     const { id, subId } = req.params;
     const { name, slug, description } = req.body || {};
-    let cat = await ProductCategory.findById(id);
-    if (!cat) {
-      cat = await ProductCategory.findOne({ slug: id });
-    }
+    const cat = await ProductCategory.findById(id);
     if (!cat) return res.status(404).json({ message: 'Category not found' });
     const sub = cat.subcategories.id(subId);
     if (!sub) return res.status(404).json({ message: 'Subcategory not found' });
 
-    // If slug change, ensure uniqueness and block if products reference old one
+    // If slug change, ensure uniqueness and block if products reference it (by IDs now)
     if (typeof slug === 'string' && slug !== sub.slug) {
-      const inUse = await Product.exists({ category: cat.slug, subcategory: sub.slug });
+      const inUse = await Product.exists({ categoryId: cat._id, subcategoryId: sub._id });
       if (inUse) return res.status(409).json({ message: 'Cannot change subcategory slug: products reference it' });
       if (cat.subcategories.some((s) => s.slug === slug)) {
         return res.status(409).json({ message: 'Subcategory slug already exists in this category' });
@@ -145,20 +131,17 @@ exports.updateSubcategory = async (req, res) => {
   }
 };
 
-// DELETE /api/admin/categories/:id/subcategories/:subId (id or slug)
+// DELETE /api/admin/categories/:id/subcategories/:subId (id only)
 exports.deleteSubcategory = async (req, res) => {
   try {
     const { id, subId } = req.params;
-    let cat = await ProductCategory.findById(id);
-    if (!cat) {
-      cat = await ProductCategory.findOne({ slug: id });
-    }
+    const cat = await ProductCategory.findById(id);
     if (!cat) return res.status(404).json({ message: 'Category not found' });
     const sub = cat.subcategories.id(subId);
     if (!sub) return res.status(404).json({ message: 'Subcategory not found' });
 
-    // Block delete if any products reference this pair
-    const inUse = await Product.exists({ category: cat.slug, subcategory: sub.slug });
+    // Block delete if any products reference this pair (by IDs)
+    const inUse = await Product.exists({ categoryId: cat._id, subcategoryId: sub._id });
     if (inUse) return res.status(409).json({ message: 'Cannot delete subcategory: products reference it' });
 
     sub.deleteOne();
@@ -170,69 +153,3 @@ exports.deleteSubcategory = async (req, res) => {
   }
 };
 
-// POST /api/admin/categories/reconcile-from-products
-// Scans Products and upserts ProductCategory and its subcategories accordingly (non-destructive).
-exports.reconcileFromProducts = async (req, res) => {
-  try {
-    const dryRun = String(req.query.dryRun || 'false').toLowerCase() === 'true';
-
-    const products = await Product.find({}, { category: 1, subcategory: 1 }).lean();
-    const map = new Map(); // categorySlug -> Set(subSlugs)
-    for (const p of products) {
-      const catSlug = (p.category || '').trim();
-      const subSlug = (p.subcategory || '').trim();
-      if (!catSlug) continue; // skip invalid
-      if (!map.has(catSlug)) map.set(catSlug, new Set());
-      if (subSlug) map.get(catSlug).add(subSlug);
-    }
-
-    const result = {
-      categoriesCreated: 0,
-      categoriesUpdated: 0,
-      subcategoriesAdded: 0,
-      categoriesAffected: [],
-      dryRun,
-    };
-
-    for (const [catSlug, subSet] of map.entries()) {
-      const subSlugs = Array.from(subSet);
-      let cat = await ProductCategory.findOne({ slug: catSlug });
-      const addedSubs = [];
-      let created = false;
-
-      if (!cat) {
-        created = true;
-        result.categoriesCreated += 1;
-        if (!dryRun) {
-          cat = await ProductCategory.create({
-            name: catSlug,
-            slug: catSlug,
-            subcategories: subSlugs.map((s) => ({ name: s, slug: s, description: '' })),
-          });
-        }
-        addedSubs.push(...subSlugs);
-      } else {
-        // merge missing subcategories only
-        const existingSubSlugs = new Set((cat.subcategories || []).map((s) => s.slug));
-        for (const s of subSlugs) {
-          if (!existingSubSlugs.has(s)) {
-            addedSubs.push(s);
-            if (!dryRun) cat.subcategories.push({ name: s, slug: s, description: '' });
-          }
-        }
-        if (addedSubs.length > 0) {
-          result.categoriesUpdated += 1;
-          if (!dryRun) await cat.save();
-        }
-      }
-
-      result.subcategoriesAdded += addedSubs.length;
-      result.categoriesAffected.push({ id: cat?._id?.toString?.(), slug: catSlug, created, addedSubcategories: addedSubs });
-    }
-
-    return res.json({ summary: result });
-  } catch (err) {
-    console.error('Reconcile from products error:', err);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
