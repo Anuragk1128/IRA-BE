@@ -16,6 +16,53 @@
         "responses": { "200": { "description": "OK" } }
       }
     },
+    "/api/cart": {
+      "get": {
+        "summary": "Get current user's cart",
+        "tags": ["Cart"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Cart fetched",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CartResponse" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/cart/add": {
+      "post": {
+        "summary": "Add product to cart",
+        "tags": ["Cart"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AddToCartRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Added to cart",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CartResponse" }
+              }
+            }
+          },
+          "400": { "description": "Validation error" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Product or user not found" },
+          "409": { "description": "Product out of stock" }
+        }
+      }
+    },
     "/api/auth/register": {
       "post": {
         "summary": "Register a new user",
@@ -567,6 +614,43 @@
       },
       "ProductCategoryUpdateRequest": {
         "allOf": [ { "$ref": "#/components/schemas/ProductCategoryCreateRequest" } ]
+      },
+      "CartItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "productId": { "type": "string" },
+          "name": { "type": "string" },
+          "price": { "type": "number" },
+          "originalPrice": { "type": "number", "nullable": true },
+          "image": { "type": "string", "nullable": true },
+          "material": { "type": "string" },
+          "color": { "type": "string" },
+          "size": { "type": "string", "nullable": true },
+          "quantity": { "type": "number" },
+          "inStock": { "type": "boolean" }
+        },
+        "required": ["id", "productId", "name", "price", "material", "color", "quantity", "inStock"]
+      },
+      "CartResponse": {
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/CartItem" } },
+          "subtotal": { "type": "number" },
+          "tax": { "type": "number" },
+          "shipping": { "type": "number" },
+          "total": { "type": "number" },
+          "itemCount": { "type": "number" }
+        },
+        "required": ["items", "subtotal", "tax", "shipping", "total", "itemCount"]
+      },
+      "AddToCartRequest": {
+        "type": "object",
+        "properties": {
+          "productId": { "type": "string" },
+          "quantity": { "type": "number", "minimum": 1, "default": 1 }
+        },
+        "required": ["productId"]
       }
     }
   }

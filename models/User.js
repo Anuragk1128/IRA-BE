@@ -45,6 +45,29 @@ const UserSchema = new mongoose.Schema(
     avatar: { type: String },
     addresses: { type: [AddressSchema], default: [] },
     preferences: { type: PreferencesSchema, default: {} },
+    // Cart structure to support add-to-cart flows
+    cart: {
+      items: {
+        type: [
+          new mongoose.Schema(
+            {
+              productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+              name: { type: String, required: true },
+              price: { type: Number, required: true, min: 0 },
+              originalPrice: { type: Number, min: 0 },
+              image: { type: String },
+              material: { type: String, required: true },
+              color: { type: String, required: true },
+              size: { type: String },
+              quantity: { type: Number, required: true, min: 1, default: 1 },
+              inStock: { type: Boolean, default: true },
+            },
+            { _id: true, timestamps: true }
+          ),
+        ],
+        default: [],
+      },
+    },
   },
   { timestamps: true }
 );
@@ -79,6 +102,13 @@ UserSchema.set('toJSON', {
         const { _id, ...rest } = a;
         return { id: _id?.toString?.() || undefined, ...rest };
         
+      });
+    }
+    // Map cart item subdocs _id -> id
+    if (ret.cart && Array.isArray(ret.cart.items)) {
+      ret.cart.items = ret.cart.items.map((it) => {
+        const { _id, ...rest } = it;
+        return { id: _id?.toString?.() || undefined, ...rest };
       });
     }
     return ret;

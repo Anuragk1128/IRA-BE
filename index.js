@@ -30,6 +30,9 @@ const categoryRoutes = require("./routes/categories")
 app.use("/api/categories", categoryRoutes)
 const adminCategoryRoutes = require("./routes/adminCategories")
 app.use("/api/admin/categories", adminCategoryRoutes)
+// Cart routes
+const cartRoutes = require("./routes/cart")
+app.use("/api/cart", cartRoutes)
 
 // Serve the latest OpenAPI spec from disk to avoid require cache
 app.get("/openapi.json", (req, res) => {
