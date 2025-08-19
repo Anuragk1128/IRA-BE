@@ -6,6 +6,7 @@
     "description": "API documentation for authentication and user resources."
   },
   "servers": [
+    { "url": "https://ira-be.onrender.com" },
     { "url": "http://localhost:{port}", "variables": { "port": { "default": "5000" } } }
   ],
   "paths": {

@@ -36,8 +36,26 @@ app.get("/openapi.json", (req, res) => {
   try {
     const specPath = path.join(__dirname, "docs", "openapi.json")
     const raw = fs.readFileSync(specPath, "utf8")
+    const spec = JSON.parse(raw)
+
+    // Prefer deployed base URL in production
+    const deployedUrl = process.env.PUBLIC_BASE_URL || "https://ira-be.onrender.com"
+    if (!Array.isArray(spec.servers)) spec.servers = []
+    if (process.env.NODE_ENV === "production") {
+      // Put deployed first; optionally drop localhost to avoid accidental selection
+      spec.servers = [{ url: deployedUrl }]
+    } else {
+      // Dev: keep both, deployed first so Swagger defaults to it
+      const withDeployedFirst = [{ url: deployedUrl }, ...spec.servers.filter(s => s.url !== deployedUrl)]
+      spec.servers = withDeployedFirst
+    }
+
     res.setHeader("Content-Type", "application/json")
-    res.send(raw)
+    // Prevent caching so Swagger UI always loads the latest spec
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+    res.setHeader("Pragma", "no-cache")
+    res.setHeader("Expires", "0")
+    res.send(JSON.stringify(spec))
   } catch (err) {
     console.error("Failed to read openapi.json:", err)
     res.status(500).json({ message: "Failed to load OpenAPI spec" })
