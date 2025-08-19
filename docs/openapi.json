@@ -391,6 +391,43 @@
           "404": { "description": "Not found" }
         }
       }
+    },
+    "/api/admin/users": {
+      "get": {
+        "summary": "List users (admin)",
+        "tags": ["AdminUsers"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "in": "query", "name": "page", "schema": { "type": "integer", "minimum": 1 }, "description": "Page number (default 1)" },
+          { "in": "query", "name": "limit", "schema": { "type": "integer", "minimum": 1, "maximum": 100 }, "description": "Page size (default 20)" },
+          { "in": "query", "name": "search", "schema": { "type": "string" }, "description": "Search email/firstName/lastName" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": { "type": "array", "items": { "$ref": "#/components/schemas/User" } },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "page": { "type": "integer" },
+                        "limit": { "type": "integer" },
+                        "total": { "type": "integer" },
+                        "pages": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
     }
   },
   "components": {

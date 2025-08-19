@@ -30,6 +30,9 @@ const categoryRoutes = require("./routes/categories")
 app.use("/api/categories", categoryRoutes)
 const adminCategoryRoutes = require("./routes/adminCategories")
 app.use("/api/admin/categories", adminCategoryRoutes)
+// Admin users routes
+const adminUsersRoutes = require("./routes/adminUsers")
+app.use("/api/admin/users", adminUsersRoutes)
 // Cart routes
 const cartRoutes = require("./routes/cart")
 app.use("/api/cart", cartRoutes)
