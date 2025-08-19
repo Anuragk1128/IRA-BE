@@ -3,18 +3,14 @@ const Product = require('../models/Product');
 
 exports.createCategory = async (req, res) => {
   try {
-    const { name, slug, description = '', image = '', subcategories = [] } = req.body || {};
+    const { name, slug, description = '', image = '' } = req.body || {};
     if (!name || !slug) return res.status(400).json({ message: 'name and slug are required' });
+    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'subcategories')) {
+      return res.status(400).json({ message: 'Do not include subcategories here. Use subcategory endpoints.' });
+    }
     const exists = await ProductCategory.findOne({ slug });
     if (exists) return res.status(409).json({ message: 'Slug already exists' });
-    // Ensure subcategory slugs are unique within this payload
-    const seen = new Set();
-    for (const s of subcategories) {
-      if (!s || !s.slug) continue;
-      if (seen.has(s.slug)) return res.status(422).json({ message: `Duplicate subcategory slug: ${s.slug}` });
-      seen.add(s.slug);
-    }
-    const cat = await ProductCategory.create({ name, slug, description, image, subcategories });
+    const cat = await ProductCategory.create({ name, slug, description, image });
     return res.status(201).json({ category: cat.toJSON() });
   } catch (err) {
     console.error('Create category error:', err);
@@ -26,6 +22,9 @@ exports.updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body || {};
+    if (Object.prototype.hasOwnProperty.call(updates, 'subcategories')) {
+      return res.status(400).json({ message: 'Do not modify subcategories here. Use subcategory endpoints.' });
+    }
     // If slug is being changed, and products reference old slug, block
     if (typeof updates.slug === 'string') {
       const current = await ProductCategory.findById(id);
@@ -73,11 +72,14 @@ exports.listCategoriesAdmin = async (req, res) => {
   }
 };
 
-// GET /api/admin/categories/:id
+// GET /api/admin/categories/:id (id or slug)
 exports.getCategoryById = async (req, res) => {
   try {
     const { id } = req.params;
-    const cat = await ProductCategory.findById(id);
+    let cat = await ProductCategory.findById(id);
+    if (!cat) {
+      cat = await ProductCategory.findOne({ slug: id });
+    }
     if (!cat) return res.status(404).json({ message: 'Category not found' });
     return res.json({ category: cat.toJSON() });
   } catch (err) {
@@ -86,13 +88,16 @@ exports.getCategoryById = async (req, res) => {
   }
 };
 
-// POST /api/admin/categories/:id/subcategories
+// POST /api/admin/categories/:id/subcategories (id or slug)
 exports.addSubcategory = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, slug, description = '' } = req.body || {};
     if (!name || !slug) return res.status(400).json({ message: 'name and slug are required' });
-    const cat = await ProductCategory.findById(id);
+    let cat = await ProductCategory.findById(id);
+    if (!cat) {
+      cat = await ProductCategory.findOne({ slug: id });
+    }
     if (!cat) return res.status(404).json({ message: 'Category not found' });
     // unique slug within category
     if (cat.subcategories.some((s) => s.slug === slug)) {
@@ -107,12 +112,15 @@ exports.addSubcategory = async (req, res) => {
   }
 };
 
-// PATCH /api/admin/categories/:id/subcategories/:subId
+// PATCH /api/admin/categories/:id/subcategories/:subId (id or slug)
 exports.updateSubcategory = async (req, res) => {
   try {
     const { id, subId } = req.params;
     const { name, slug, description } = req.body || {};
-    const cat = await ProductCategory.findById(id);
+    let cat = await ProductCategory.findById(id);
+    if (!cat) {
+      cat = await ProductCategory.findOne({ slug: id });
+    }
     if (!cat) return res.status(404).json({ message: 'Category not found' });
     const sub = cat.subcategories.id(subId);
     if (!sub) return res.status(404).json({ message: 'Subcategory not found' });
@@ -137,11 +145,14 @@ exports.updateSubcategory = async (req, res) => {
   }
 };
 
-// DELETE /api/admin/categories/:id/subcategories/:subId
+// DELETE /api/admin/categories/:id/subcategories/:subId (id or slug)
 exports.deleteSubcategory = async (req, res) => {
   try {
     const { id, subId } = req.params;
-    const cat = await ProductCategory.findById(id);
+    let cat = await ProductCategory.findById(id);
+    if (!cat) {
+      cat = await ProductCategory.findOne({ slug: id });
+    }
     if (!cat) return res.status(404).json({ message: 'Category not found' });
     const sub = cat.subcategories.id(subId);
     if (!sub) return res.status(404).json({ message: 'Subcategory not found' });
