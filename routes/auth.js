@@ -1,8 +1,7 @@
-import express from 'express';
-import { register, login } from '../controllers/authController.js';
-import { requireAuth } from '../middleware/auth.js';
-
+const express = require('express');
 const router = express.Router();
+const { register, login } = require('../controllers/authController');
+const { requireAuth } = require('../middleware/auth');
 
 // POST /api/auth/register
 router.post('/register', register);
@@ -15,4 +14,4 @@ router.get('/me', requireAuth, (req, res) => {
   return res.json({ user: req.user.toJSON() });
 });
 
-export default router;
+module.exports = router;

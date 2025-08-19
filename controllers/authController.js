@@ -1,5 +1,5 @@
-import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
 function signToken(userId) {
   const secret = process.env.JWT_SECRET;
@@ -7,7 +7,7 @@ function signToken(userId) {
   return jwt.sign({ sub: userId }, secret, { expiresIn: '7d' });
 }
 
-export const register = async (req, res) => {
+exports.register = async (req, res) => {
   try {
     const {
       email,
@@ -48,7 +48,7 @@ export const register = async (req, res) => {
   }
 };
 
-export const login = async (req, res) => {
+exports.login = async (req, res) => {
   try {
     const { email, password } = req.body || {};
     if (!email || !password) return res.status(400).json({ message: 'email and password are required' });

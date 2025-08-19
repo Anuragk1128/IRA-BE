@@ -1,12 +1,12 @@
-import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
 // Middleware to require authentication via JWT
 // - Reads Authorization: Bearer <token>
 // - Verifies token with JWT_SECRET
 // - Loads user and attaches to req.user
 // - 401 if missing/invalid, 403 if user not found
-export async function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   try {
     const header = req.headers['authorization'] || req.headers['Authorization'];
     if (!header || !header.startsWith('Bearer ')) {
@@ -32,3 +32,5 @@ export async function requireAuth(req, res, next) {
     return res.status(500).json({ message: 'Internal server error' });
   }
 }
+
+module.exports = { requireAuth };

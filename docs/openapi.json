@@ -1,0 +1,572 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Backend IRA API",
+    "version": "1.0.0",
+    "description": "API documentation for authentication and user resources."
+  },
+  "servers": [
+    { "url": "http://localhost:{port}", "variables": { "port": { "default": "5000" } } }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Health check",
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "summary": "Register a new user",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RegisterRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Registered successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthResponse" }
+              }
+            }
+          },
+          "400": { "description": "Validation error" },
+          "409": { "description": "Email already in use" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "summary": "Login",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthResponse" }
+              }
+            }
+          },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "summary": "Get current user",
+        "tags": ["Auth"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Current user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "user": { "$ref": "#/components/schemas/User" } }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/admin/auth/register": {
+      "post": {
+        "summary": "Register a new admin",
+        "tags": ["AdminAuth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AdminRegisterRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Admin registered successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminAuthResponse" }
+              }
+            }
+          },
+          "400": { "description": "Validation error" },
+          "409": { "description": "Email already in use" }
+        }
+      }
+    },
+    "/api/admin/auth/login": {
+      "post": {
+        "summary": "Admin login",
+        "tags": ["AdminAuth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AdminLoginRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminAuthResponse" }
+              }
+            }
+          },
+          "400": { "description": "Validation error" },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/api/admin/auth/me": {
+      "get": {
+        "summary": "Get current admin",
+        "tags": ["AdminAuth"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Current admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "admin": { "$ref": "#/components/schemas/Admin" } }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/products": {
+      "get": {
+        "summary": "List products",
+        "tags": ["Products"],
+        "parameters": [
+          { "in": "query", "name": "category", "schema": { "type": "string" } },
+          { "in": "query", "name": "subcategory", "schema": { "type": "string" } },
+          { "in": "query", "name": "featured", "schema": { "type": "boolean" } },
+          { "in": "query", "name": "bestseller", "schema": { "type": "boolean" } },
+          { "in": "query", "name": "newArrival", "schema": { "type": "boolean" } },
+          { "in": "query", "name": "inStock", "schema": { "type": "boolean" } },
+          { "in": "query", "name": "minPrice", "schema": { "type": "number" } },
+          { "in": "query", "name": "maxPrice", "schema": { "type": "number" } },
+          { "in": "query", "name": "search", "schema": { "type": "string" } },
+          { "in": "query", "name": "sort", "schema": { "type": "string", "example": "createdAt:desc" } },
+          { "in": "query", "name": "page", "schema": { "type": "integer", "minimum": 1 } },
+          { "in": "query", "name": "limit", "schema": { "type": "integer", "minimum": 1, "maximum": 100 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Products list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "products": { "type": "array", "items": { "$ref": "#/components/schemas/Product" } },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "page": { "type": "integer" },
+                        "limit": { "type": "integer" },
+                        "total": { "type": "integer" },
+                        "pages": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/{id}": {
+      "get": {
+        "summary": "Get product by id",
+        "tags": ["Products"],
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } } ],
+        "responses": {
+          "200": {
+            "description": "Product",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "product": { "$ref": "#/components/schemas/Product" } } } } }
+          },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/api/admin/products": {
+      "get": {
+        "summary": "List products (admin)",
+        "tags": ["AdminProducts"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Products", "content": { "application/json": { "schema": { "type": "object", "properties": { "products": { "type": "array", "items": { "$ref": "#/components/schemas/Product" } } } } } } },
+          "401": { "description": "Unauthorized" }
+        }
+      },
+      "post": {
+        "summary": "Create product",
+        "tags": ["AdminProducts"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProductCreateRequest" } } } },
+        "responses": {
+          "201": { "description": "Created", "content": { "application/json": { "schema": { "type": "object", "properties": { "product": { "$ref": "#/components/schemas/Product" } } } } } },
+          "400": { "description": "Validation error" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/admin/products/{id}": {
+      "get": {
+        "summary": "Get product (admin)",
+        "tags": ["AdminProducts"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } } ],
+        "responses": {
+          "200": { "description": "Product", "content": { "application/json": { "schema": { "type": "object", "properties": { "product": { "$ref": "#/components/schemas/Product" } } } } } },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Not found" }
+        }
+      },
+      "patch": {
+        "summary": "Update product",
+        "tags": ["AdminProducts"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProductUpdateRequest" } } } },
+        "responses": {
+          "200": { "description": "Updated", "content": { "application/json": { "schema": { "type": "object", "properties": { "product": { "$ref": "#/components/schemas/Product" } } } } } },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Not found" }
+        }
+      },
+      "delete": {
+        "summary": "Delete product",
+        "tags": ["AdminProducts"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } } ],
+        "responses": {
+          "204": { "description": "Deleted" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/api/categories": {
+      "get": {
+        "summary": "List categories",
+        "tags": ["Categories"],
+        "responses": {
+          "200": { "description": "Categories", "content": { "application/json": { "schema": { "type": "object", "properties": { "categories": { "type": "array", "items": { "$ref": "#/components/schemas/ProductCategory" } } } } } } }
+        }
+      }
+    },
+    "/api/categories/{slug}": {
+      "get": {
+        "summary": "Get category by slug",
+        "tags": ["Categories"],
+        "parameters": [ { "in": "path", "name": "slug", "required": true, "schema": { "type": "string" } } ],
+        "responses": {
+          "200": { "description": "Category", "content": { "application/json": { "schema": { "type": "object", "properties": { "category": { "$ref": "#/components/schemas/ProductCategory" } } } } } },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/api/admin/categories": {
+      "get": {
+        "summary": "List categories (admin)",
+        "tags": ["AdminCategories"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Categories", "content": { "application/json": { "schema": { "type": "object", "properties": { "categories": { "type": "array", "items": { "$ref": "#/components/schemas/ProductCategory" } } } } } } },
+          "401": { "description": "Unauthorized" }
+        }
+      },
+      "post": {
+        "summary": "Create category",
+        "tags": ["AdminCategories"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProductCategoryCreateRequest" } } } },
+        "responses": {
+          "201": { "description": "Created", "content": { "application/json": { "schema": { "type": "object", "properties": { "category": { "$ref": "#/components/schemas/ProductCategory" } } } } } },
+          "400": { "description": "Validation error" },
+          "401": { "description": "Unauthorized" },
+          "409": { "description": "Slug already exists" }
+        }
+      }
+    },
+    "/api/admin/categories/{id}": {
+      "patch": {
+        "summary": "Update category",
+        "tags": ["AdminCategories"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProductCategoryUpdateRequest" } } } },
+        "responses": {
+          "200": { "description": "Updated", "content": { "application/json": { "schema": { "type": "object", "properties": { "category": { "$ref": "#/components/schemas/ProductCategory" } } } } } },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Not found" }
+        }
+      },
+      "delete": {
+        "summary": "Delete category",
+        "tags": ["AdminCategories"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } } ],
+        "responses": {
+          "204": { "description": "Deleted" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Not found" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    },
+    "schemas": {
+      "Address": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "664f2f7c8e3b8c1c2a9a1234" },
+          "type": { "type": "string", "enum": ["shipping", "billing"] },
+          "firstName": { "type": "string" },
+          "lastName": { "type": "string" },
+          "company": { "type": "string", "nullable": true },
+          "address1": { "type": "string" },
+          "address2": { "type": "string", "nullable": true },
+          "city": { "type": "string" },
+          "state": { "type": "string" },
+          "zipCode": { "type": "string" },
+          "country": { "type": "string" },
+          "isDefault": { "type": "boolean" }
+        },
+        "required": ["type", "firstName", "lastName", "address1", "city", "state", "zipCode", "country", "isDefault"]
+      },
+      "UserPreferences": {
+        "type": "object",
+        "properties": {
+          "emailNotifications": { "type": "boolean" },
+          "smsNotifications": { "type": "boolean" },
+          "marketingEmails": { "type": "boolean" },
+          "currency": { "type": "string", "example": "USD" },
+          "language": { "type": "string", "example": "en" }
+        },
+        "required": ["emailNotifications", "smsNotifications", "marketingEmails", "currency", "language"]
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "email": { "type": "string" },
+          "firstName": { "type": "string" },
+          "lastName": { "type": "string" },
+          "phone": { "type": "string", "nullable": true },
+          "dateOfBirth": { "type": "string", "nullable": true, "example": "1990-01-01" },
+          "avatar": { "type": "string", "nullable": true },
+          "addresses": { "type": "array", "items": { "$ref": "#/components/schemas/Address" } },
+          "preferences": { "$ref": "#/components/schemas/UserPreferences" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "email", "firstName", "lastName", "addresses", "preferences", "createdAt", "updatedAt"]
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "user": { "$ref": "#/components/schemas/User" },
+          "token": { "type": "string" }
+        },
+        "required": ["user", "token"]
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string" },
+          "password": { "type": "string" },
+          "firstName": { "type": "string" },
+          "lastName": { "type": "string" },
+          "phone": { "type": "string" },
+          "dateOfBirth": { "type": "string" },
+          "avatar": { "type": "string" },
+          "addresses": { "type": "array", "items": { "$ref": "#/components/schemas/Address" } },
+          "preferences": { "$ref": "#/components/schemas/UserPreferences" }
+        },
+        "required": ["email", "password", "firstName", "lastName"]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string" },
+          "password": { "type": "string" }
+        },
+        "required": ["email", "password"]
+      },
+      "Admin": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "email": { "type": "string" },
+          "role": { "type": "string", "enum": ["admin", "manager", "staff"] },
+          "name": { "type": "string" },
+          "lastLogin": { "type": "string", "format": "date-time", "nullable": true },
+          "status": { "type": "string", "enum": ["active", "inactive"] },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "email", "role", "name", "status", "createdAt", "updatedAt"]
+      },
+      "AdminAuthResponse": {
+        "type": "object",
+        "properties": {
+          "admin": { "$ref": "#/components/schemas/Admin" },
+          "token": { "type": "string" }
+        },
+        "required": ["admin", "token"]
+      },
+      "AdminRegisterRequest": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string" },
+          "password": { "type": "string" },
+          "name": { "type": "string" },
+          "role": { "type": "string", "enum": ["admin", "manager", "staff"], "default": "admin" },
+          "status": { "type": "string", "enum": ["active", "inactive"], "default": "active" }
+        },
+        "required": ["email", "password", "name"]
+      },
+      "AdminLoginRequest": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string" },
+          "password": { "type": "string" }
+        },
+        "required": ["email", "password"]
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "price": { "type": "number" },
+          "originalPrice": { "type": "number", "nullable": true },
+          "images": { "type": "array", "items": { "type": "string" } },
+          "category": { "type": "string" },
+          "subcategory": { "type": "string", "nullable": true },
+          "material": { "type": "string" },
+          "color": { "type": "string" },
+          "size": { "type": "string", "nullable": true },
+          "inStock": { "type": "boolean" },
+          "rating": { "type": "number" },
+          "reviewCount": { "type": "number" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "featured": { "type": "boolean", "nullable": true },
+          "bestseller": { "type": "boolean", "nullable": true },
+          "newArrival": { "type": "boolean", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "name", "price", "images", "category", "material", "color", "inStock", "rating", "reviewCount", "tags", "createdAt", "updatedAt"]
+      },
+      "ProductCreateRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "price": { "type": "number" },
+          "originalPrice": { "type": "number" },
+          "images": { "type": "array", "items": { "type": "string" } },
+          "category": { "type": "string" },
+          "subcategory": { "type": "string" },
+          "material": { "type": "string" },
+          "color": { "type": "string" },
+          "size": { "type": "string" },
+          "inStock": { "type": "boolean" },
+          "rating": { "type": "number" },
+          "reviewCount": { "type": "number" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "featured": { "type": "boolean" },
+          "bestseller": { "type": "boolean" },
+          "newArrival": { "type": "boolean" }
+        },
+        "required": ["name", "price", "category", "material", "color"]
+      },
+      "ProductUpdateRequest": {
+        "allOf": [ { "$ref": "#/components/schemas/ProductCreateRequest" } ]
+      },
+      "ProductSubcategory": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "description": { "type": "string" }
+        },
+        "required": ["id", "name", "slug", "description"]
+      },
+      "ProductCategory": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "description": { "type": "string" },
+          "image": { "type": "string" },
+          "subcategories": { "type": "array", "items": { "$ref": "#/components/schemas/ProductSubcategory" } },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "name", "slug", "description", "image", "subcategories", "createdAt", "updatedAt"]
+      },
+      "ProductCategoryCreateRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "description": { "type": "string" },
+          "image": { "type": "string" },
+          "subcategories": { "type": "array", "items": { "$ref": "#/components/schemas/ProductSubcategoryCreateRequest" } }
+        },
+        "required": ["name", "slug"]
+      },
+      "ProductSubcategoryCreateRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "description": { "type": "string" }
+        },
+        "required": ["name", "slug"]
+      },
+      "ProductCategoryUpdateRequest": {
+        "allOf": [ { "$ref": "#/components/schemas/ProductCategoryCreateRequest" } ]
+      }
+    }
+  }
+}
