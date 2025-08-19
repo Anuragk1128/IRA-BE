@@ -158,3 +158,70 @@ exports.deleteSubcategory = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+// POST /api/admin/categories/reconcile-from-products
+// Scans Products and upserts ProductCategory and its subcategories accordingly (non-destructive).
+exports.reconcileFromProducts = async (req, res) => {
+  try {
+    const dryRun = String(req.query.dryRun || 'false').toLowerCase() === 'true';
+
+    const products = await Product.find({}, { category: 1, subcategory: 1 }).lean();
+    const map = new Map(); // categorySlug -> Set(subSlugs)
+    for (const p of products) {
+      const catSlug = (p.category || '').trim();
+      const subSlug = (p.subcategory || '').trim();
+      if (!catSlug) continue; // skip invalid
+      if (!map.has(catSlug)) map.set(catSlug, new Set());
+      if (subSlug) map.get(catSlug).add(subSlug);
+    }
+
+    const result = {
+      categoriesCreated: 0,
+      categoriesUpdated: 0,
+      subcategoriesAdded: 0,
+      categoriesAffected: [],
+      dryRun,
+    };
+
+    for (const [catSlug, subSet] of map.entries()) {
+      const subSlugs = Array.from(subSet);
+      let cat = await ProductCategory.findOne({ slug: catSlug });
+      const addedSubs = [];
+      let created = false;
+
+      if (!cat) {
+        created = true;
+        result.categoriesCreated += 1;
+        if (!dryRun) {
+          cat = await ProductCategory.create({
+            name: catSlug,
+            slug: catSlug,
+            subcategories: subSlugs.map((s) => ({ name: s, slug: s, description: '' })),
+          });
+        }
+        addedSubs.push(...subSlugs);
+      } else {
+        // merge missing subcategories only
+        const existingSubSlugs = new Set((cat.subcategories || []).map((s) => s.slug));
+        for (const s of subSlugs) {
+          if (!existingSubSlugs.has(s)) {
+            addedSubs.push(s);
+            if (!dryRun) cat.subcategories.push({ name: s, slug: s, description: '' });
+          }
+        }
+        if (addedSubs.length > 0) {
+          result.categoriesUpdated += 1;
+          if (!dryRun) await cat.save();
+        }
+      }
+
+      result.subcategoriesAdded += addedSubs.length;
+      result.categoriesAffected.push({ id: cat?._id?.toString?.(), slug: catSlug, created, addedSubcategories: addedSubs });
+    }
+
+    return res.json({ summary: result });
+  } catch (err) {
+    console.error('Reconcile from products error:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};

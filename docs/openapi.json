@@ -16,6 +16,52 @@
         "responses": { "200": { "description": "OK" } }
       }
     },
+    "/api/admin/categories/reconcile-from-products": {
+      "post": {
+        "summary": "Reconcile categories from products (non-destructive)",
+        "tags": ["AdminCategories"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "in": "query", "name": "dryRun", "required": false, "schema": { "type": "boolean" }, "description": "If true, only preview changes without writing" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reconciliation summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "summary": {
+                      "type": "object",
+                      "properties": {
+                        "categoriesCreated": { "type": "integer" },
+                        "categoriesUpdated": { "type": "integer" },
+                        "subcategoriesAdded": { "type": "integer" },
+                        "categoriesAffected": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": { "type": "string", "nullable": true },
+                              "slug": { "type": "string" },
+                              "created": { "type": "boolean" },
+                              "addedSubcategories": { "type": "array", "items": { "type": "string" } }
+                            }
+                          }
+                        },
+                        "dryRun": { "type": "boolean" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
     "/api/cart": {
       "get": {
         "summary": "Get current user's cart",
