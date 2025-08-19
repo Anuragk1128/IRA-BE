@@ -7,8 +7,9 @@ const ProductSchema = new mongoose.Schema(
     price: { type: Number, required: true, min: 0 },
     originalPrice: { type: Number, min: 0 },
     images: { type: [String], default: [] },
-    category: { type: String, required: true }, // category slug or name per frontend interface
-    subcategory: { type: String }, // optional subcategory slug or name
+    // New ID-based linkage
+    categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'ProductCategory', required: true },
+    subcategoryId: { type: mongoose.Schema.Types.ObjectId, required: true }, // references embedded subcategory _id
     material: { type: String, required: true },
     color: { type: String, required: true },
     size: { type: String },

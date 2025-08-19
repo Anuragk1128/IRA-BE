@@ -11,11 +11,11 @@ exports.listCategories = async (req, res) => {
   }
 };
 
-// Public: get category by slug
-exports.getCategoryBySlug = async (req, res) => {
+// Public: get category by id
+exports.getCategoryById = async (req, res) => {
   try {
-    const { slug } = req.params;
-    const cat = await ProductCategory.findOne({ slug });
+    const { id } = req.params;
+    const cat = await ProductCategory.findById(id);
     if (!cat) return res.status(404).json({ message: 'Category not found' });
     return res.json({ category: cat.toJSON() });
   } catch (err) {

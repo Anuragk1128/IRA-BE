@@ -4,8 +4,8 @@ const Product = require('../models/Product');
 exports.listProducts = async (req, res) => {
   try {
     const {
-      category,
-      subcategory,
+      categoryId,
+      subcategoryId,
       featured,
       bestseller,
       newArrival,
@@ -19,8 +19,8 @@ exports.listProducts = async (req, res) => {
     } = req.query;
 
     const query = {};
-    if (category) query.category = category;
-    if (subcategory) query.subcategory = subcategory;
+    if (categoryId) query.categoryId = categoryId;
+    if (subcategoryId) query.subcategoryId = subcategoryId;
     if (featured !== undefined) query.featured = featured === 'true';
     if (bestseller !== undefined) query.bestseller = bestseller === 'true';
     if (newArrival !== undefined) query.newArrival = newArrival === 'true';
