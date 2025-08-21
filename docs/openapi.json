@@ -231,6 +231,32 @@
         }
       }
     },
+    "/api/products/by-category": {
+      "get": {
+        "summary": "List products by category or subcategory",
+        "tags": ["Products"],
+        "parameters": [
+          { "in": "query", "name": "categoryId", "schema": { "type": "string" }, "description": "Filter by category id" },
+          { "in": "query", "name": "subcategoryId", "schema": { "type": "string" }, "description": "Filter by subcategory id" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Products list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "products": { "type": "array", "items": { "$ref": "#/components/schemas/Product" } }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "categoryId or subcategoryId is required" }
+        }
+      }
+    },
     "/api/products/{id}": {
       "get": {
         "summary": "Get product by id",
