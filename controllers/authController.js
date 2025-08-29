@@ -17,7 +17,6 @@ exports.register = async (req, res) => {
       phone,
       dateOfBirth,
       avatar,
-      addresses = [],
       preferences = {},
     } = req.body || {};
 
@@ -36,7 +35,6 @@ exports.register = async (req, res) => {
       phone,
       dateOfBirth,
       avatar,
-      addresses,
       preferences,
     });
 

@@ -33,9 +33,10 @@ app.use("/api/admin/categories", adminCategoryRoutes)
 // Admin users routes
 const adminUsersRoutes = require("./routes/adminUsers")
 app.use("/api/admin/users", adminUsersRoutes)
-// Cart routes
-const cartRoutes = require("./routes/cart")
-app.use("/api/cart", cartRoutes)
+// Wishlist routes
+const wishlistRoutes = require("./routes/wishlist")
+app.use("/api/wishlist", wishlistRoutes)
+// Cart routes removed (endpoints disabled)
 
 // Serve the latest OpenAPI spec from disk to avoid require cache
 app.get("/openapi.json", (req, res) => {

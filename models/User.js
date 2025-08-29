@@ -1,27 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
-const AddressSchema = new mongoose.Schema(
-  {
-    // We expose "id" in toJSON transform; internal _id remains ObjectId
-    type: {
-      type: String,
-      enum: ['shipping', 'billing'],
-      required: true,
-    },
-    firstName: { type: String, required: true },
-    lastName: { type: String, required: true },
-    company: { type: String },
-    address1: { type: String, required: true },
-    address2: { type: String },
-    city: { type: String, required: true },
-    state: { type: String, required: true },
-    zipCode: { type: String, required: true },
-    country: { type: String, required: true },
-    isDefault: { type: Boolean, default: false },
-  },
-  { _id: true }
-);
+// Address fields removed from user model
 
 const PreferencesSchema = new mongoose.Schema(
   {
@@ -43,31 +23,9 @@ const UserSchema = new mongoose.Schema(
     phone: { type: String },
     dateOfBirth: { type: String }, // ISO string preferred on frontend
     avatar: { type: String },
-    addresses: { type: [AddressSchema], default: [] },
+    // Wishlist stores Product ObjectIds
+    wishlist: { type: [mongoose.Schema.Types.ObjectId], ref: 'Product', default: [] },
     preferences: { type: PreferencesSchema, default: {} },
-    // Cart structure to support add-to-cart flows
-    cart: {
-      items: {
-        type: [
-          new mongoose.Schema(
-            {
-              productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
-              name: { type: String, required: true },
-              price: { type: Number, required: true, min: 0 },
-              originalPrice: { type: Number, min: 0 },
-              image: { type: String },
-              material: { type: String, required: true },
-              color: { type: String, required: true },
-              size: { type: String },
-              quantity: { type: Number, required: true, min: 1, default: 1 },
-              inStock: { type: Boolean, default: true },
-            },
-            { _id: true, timestamps: true }
-          ),
-        ],
-        default: [],
-      },
-    },
   },
   { timestamps: true }
 );
@@ -96,21 +54,7 @@ UserSchema.set('toJSON', {
     ret.id = ret._id.toString();
     delete ret._id;
     delete ret.password;
-    // Map address subdocs _id -> id
-    if (Array.isArray(ret.addresses)) {
-      ret.addresses = ret.addresses.map((a) => {
-        const { _id, ...rest } = a;
-        return { id: _id?.toString?.() || undefined, ...rest };
-        
-      });
-    }
-    // Map cart item subdocs _id -> id
-    if (ret.cart && Array.isArray(ret.cart.items)) {
-      ret.cart.items = ret.cart.items.map((it) => {
-        const { _id, ...rest } = it;
-        return { id: _id?.toString?.() || undefined, ...rest };
-      });
-    }
+    // Address fields removed
     return ret;
   },
 });
