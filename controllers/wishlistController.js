@@ -24,7 +24,7 @@ exports.addToWishlist = async (req, res) => {
 
     if (!updated) return res.status(404).json({ message: 'User not found' });
 
-    return res.status(200).json({ wishlist: updated.wishlist });
+    return res.status(200).json({ message: 'Product added to wishlist', wishlist: updated.wishlist });
   } catch (err) {
     console.error('addToWishlist error:', err);
     return res.status(500).json({ message: 'Internal server error' });
