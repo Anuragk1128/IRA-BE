@@ -103,7 +103,14 @@
             "description": "Updated wishlist",
             "content": {
               "application/json": {
-                "schema": { "type": "object", "properties": { "wishlist": { "type": "array", "items": { "type": "string" } } } }
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Product added to wishlist" },
+                    "wishlist": { "type": "array", "items": { "type": "string" } }
+                  },
+                  "required": ["message", "wishlist"]
+                }
               }
             }
           },
