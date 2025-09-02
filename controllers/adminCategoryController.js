@@ -1,5 +1,26 @@
 const ProductCategory = require('../models/ProductCategory');
 const Product = require('../models/Product');
+const cloudinary = require('cloudinary').v2;
+
+async function normalizeImageToUrl(input) {
+  if (!input || typeof input !== 'string') return '';
+  const trimmed = input.trim();
+  // Allow existing absolute URL, prefer https
+  if (/^https?:\/\//i.test(trimmed)) return trimmed.replace(/^http:\/\//i, 'https://');
+  // data URL base64
+  if (/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(trimmed)) {
+    const up = await cloudinary.uploader.upload(trimmed, { folder: 'categories' });
+    return up.secure_url;
+  }
+  // raw base64
+  if (/^[A-Za-z0-9+/=]+$/.test(trimmed) && trimmed.length > 100) {
+    const dataUrl = `data:image/png;base64,${trimmed}`;
+    const up = await cloudinary.uploader.upload(dataUrl, { folder: 'categories' });
+    return up.secure_url;
+  }
+  // Unknown format (e.g., "/image.png") -> reject to avoid broken links
+  throw Object.assign(new Error('Invalid category image: provide a Cloudinary URL or base64 data URL'), { field: 'image' });
+}
 
 exports.createCategory = async (req, res) => {
   try {
@@ -10,10 +31,14 @@ exports.createCategory = async (req, res) => {
     }
     const exists = await ProductCategory.findOne({ slug });
     if (exists) return res.status(409).json({ message: 'Slug already exists' });
-    const cat = await ProductCategory.create({ name, slug, description, image });
+    const normalizedImage = image ? await normalizeImageToUrl(image) : '';
+    const cat = await ProductCategory.create({ name, slug, description, image: normalizedImage });
     return res.status(201).json({ category: cat.toJSON() });
   } catch (err) {
     console.error('Create category error:', err);
+    if (err && err.field === 'image') {
+      return res.status(400).json({ message: err.message, field: 'image' });
+    }
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -32,11 +57,22 @@ exports.updateCategory = async (req, res) => {
       const existsSlug = await ProductCategory.findOne({ slug: updates.slug, _id: { $ne: id } });
       if (existsSlug) return res.status(409).json({ message: 'Slug already exists' });
     }
+    // Normalize image if provided
+    if (Object.prototype.hasOwnProperty.call(updates, 'image')) {
+      if (typeof updates.image !== 'string') {
+        return res.status(400).json({ message: 'image must be a string', field: 'image' });
+      }
+      updates.image = updates.image ? await normalizeImageToUrl(updates.image) : '';
+    }
+
     const cat = await ProductCategory.findByIdAndUpdate(id, updates, { new: true });
     if (!cat) return res.status(404).json({ message: 'Category not found' });
     return res.json({ category: cat.toJSON() });
   } catch (err) {
     console.error('Update category error:', err);
+    if (err && err.field === 'image') {
+      return res.status(400).json({ message: err.message, field: 'image' });
+    }
     return res.status(500).json({ message: 'Internal server error' });
   }
 };

@@ -1,5 +1,39 @@
 const Product = require('../models/Product');
 const ProductCategory = require('../models/ProductCategory');
+const cloudinary = require('cloudinary').v2;
+
+// Normalize an array of image inputs to secure URLs using Cloudinary when necessary
+async function normalizeImagesToUrls(inputs) {
+  if (!Array.isArray(inputs) || inputs.length === 0) return [];
+  const out = [];
+  for (const item of inputs) {
+    if (!item || typeof item !== 'string') continue;
+    const trimmed = item.trim();
+    // If already an absolute http(s) URL, accept as-is (must be https)
+    if (/^https?:\/\//i.test(trimmed)) {
+      // Prefer https
+      const httpsUrl = trimmed.replace(/^http:\/\//i, 'https://');
+      out.push(httpsUrl);
+      continue;
+    }
+    // If base64 data URL
+    if (/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(trimmed)) {
+      const uploaded = await cloudinary.uploader.upload(trimmed, { folder: 'products' });
+      out.push(uploaded.secure_url);
+      continue;
+    }
+    // If raw base64 (no data: prefix), try to infer png
+    if (/^[A-Za-z0-9+/=]+$/.test(trimmed) && trimmed.length > 100) {
+      const dataUrl = `data:image/png;base64,${trimmed}`;
+      const uploaded = await cloudinary.uploader.upload(dataUrl, { folder: 'products' });
+      out.push(uploaded.secure_url);
+      continue;
+    }
+    // Unknown format (e.g., "/file.png"), reject to prevent broken images
+    throw Object.assign(new Error('Invalid image input: provide a Cloudinary URL or base64 data URL'), { field: 'images' });
+  }
+  return out;
+}
 
 exports.createProduct = async (req, res) => {
   try {
@@ -25,7 +59,7 @@ exports.createProduct = async (req, res) => {
       description: data.description || '',
       price: data.price,
       originalPrice: data.originalPrice,
-      images: Array.isArray(data.images) ? data.images : [],
+      images: Array.isArray(data.images) ? await normalizeImagesToUrls(data.images) : [],
       categoryId: data.categoryId,
       subcategoryId: data.subcategoryId,
       material: data.material,
@@ -44,6 +78,9 @@ exports.createProduct = async (req, res) => {
     return res.status(201).json({ product: product.toJSON() });
   } catch (err) {
     console.error('Create product error:', err);
+    if (err && err.field === 'images') {
+      return res.status(400).json({ message: err.message, field: 'images' });
+    }
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -75,10 +112,21 @@ exports.updateProduct = async (req, res) => {
       }
     }
 
+    // Normalize images if provided
+    if (updates.hasOwnProperty('images')) {
+      if (!Array.isArray(updates.images)) {
+        return res.status(400).json({ message: 'images must be an array of strings', field: 'images' });
+      }
+      updates.images = await normalizeImagesToUrls(updates.images);
+    }
+
     const product = await Product.findByIdAndUpdate(id, updates, { new: true });
     return res.json({ product: product.toJSON() });
   } catch (err) {
     console.error('Update product error:', err);
+    if (err && err.field === 'images') {
+      return res.status(400).json({ message: err.message, field: 'images' });
+    }
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
