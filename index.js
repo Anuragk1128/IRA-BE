@@ -77,6 +77,19 @@ app.get("/", (req, res) => {
   res.json({ status: "ok" })
 })
 
+// Cloudinary health check
+app.get("/api/health/cloudinary", async (req, res) => {
+  try {
+    const cloudinary = require("./config/cloudinary")
+    const result = await cloudinary.api.ping()
+    return res.status(200).json({ status: "ok", cloudinary: result.status })
+  } catch (err) {
+    console.error("Cloudinary ping failed:", err && err.message ? err.message : err)
+    const status = (err && err.response && err.response.status) || 500
+    return res.status(500).json({ status: "error", code: status })
+  }
+})
+
 // DB connect then start server
 const uri = process.env.MONGODB_URI
 if (!uri) {
