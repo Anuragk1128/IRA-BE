@@ -5,8 +5,10 @@ const mongoose = require("mongoose")
 const swaggerUi = require("swagger-ui-express")
 const fs = require("fs")
 const path = require("path")
+const connectCloudinary = require("./config/cloudinary")
 
 dotenv.config()
+connectCloudinary()
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -80,7 +82,7 @@ app.get("/", (req, res) => {
 // Cloudinary health check
 app.get("/api/health/cloudinary", async (req, res) => {
   try {
-    const cloudinary = require("./config/cloudinary")
+    const cloudinary = require("cloudinary").v2
     const result = await cloudinary.api.ping()
     return res.status(200).json({ status: "ok", cloudinary: result.status })
   } catch (err) {

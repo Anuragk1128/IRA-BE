@@ -1,12 +1,24 @@
-const dotenv = require("dotenv");
-dotenv.config();
+const { v2: cloudinary } = require("cloudinary");
 
-const cloudinary = require("cloudinary").v2;
+function connectCloudinary() {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_SECRET_KEY,
+  });
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+  // Print a startup status similar to MongoDB
+  cloudinary.api
+    .ping()
+    .then((r) => {
+      console.log("Cloudinary connected");
+    })
+    .catch((err) => {
+      const code = (err && err.response && err.response.status) || "";
+      console.error("Cloudinary connection failed", code ? `(${code})` : "", "-", err.message || err);
+    });
 
-module.exports = cloudinary;
+  return cloudinary;
+}
+
+module.exports = connectCloudinary;
